@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "Elora Art",
+    "slug": "elora-art-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0ea5e9"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.eloraart.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app needs access to camera to capture measurement photos.",
+        "NSLocationWhenInUseUsageDescription": "This app needs location access to record measurement locations."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0ea5e9"
+      },
+      "package": "com.eloraart.mobile",
+      "permissions": [
+        "CAMERA",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-location",
+      "expo-camera",
+      "expo-image-picker",
+      "expo-document-picker"
+    ],
+    "extra": {
+      "apiUrl": "http://localhost:3001"
+    }
+  }
+}

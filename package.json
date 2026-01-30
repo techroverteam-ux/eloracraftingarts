@@ -1,0 +1,13 @@
+{
+  "name": "elora-art",
+  "version": "1.0.0",
+  "description": "Enterprise SaaS platform for art installation management",
+  "scripts": {
+    "start": "./start.sh",
+    "stop": "lsof -ti:3000,3001,3002 | xargs kill -9 2>/dev/null || true",
+    "install:all": "cd api && npm install && cd ../web-portal && npm install && cd ../admin-portal && npm install && cd .."
+  },
+  "keywords": ["saas", "art", "installation", "management", "enterprise"],
+  "author": "Elora Art Team",
+  "license": "MIT"
+}
