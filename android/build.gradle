@@ -1,0 +1,35 @@
+buildscript {
+    ext {
+        buildToolsVersion = "33.0.0"
+        minSdkVersion = 21
+        compileSdkVersion = 33
+        targetSdkVersion = 33
+        ndkVersion = "23.1.7779620"
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle:7.4.2")
+        classpath("com.facebook.react:react-native-gradle-plugin")
+    }
+}
+
+// Force compatible dependency versions globally
+allprojects {
+    configurations.all {
+        resolutionStrategy {
+            force 'androidx.appcompat:appcompat:1.6.1'
+            force 'androidx.appcompat:appcompat-resources:1.6.1'
+            force 'androidx.core:core:1.12.0'
+            force 'androidx.core:core-ktx:1.12.0'
+            force 'androidx.annotation:annotation-experimental:1.3.0'
+            force 'androidx.activity:activity:1.7.2'
+            force 'androidx.activity:activity-ktx:1.7.2'
+            force 'androidx.transition:transition:1.4.1'
+            force 'androidx.dynamicanimation:dynamicanimation:1.0.0'
+            force 'androidx.core:core-viewtree:1.0.0'
+        }
+    }
+}
