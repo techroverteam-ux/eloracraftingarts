@@ -6,15 +6,16 @@ interface User {
   id: string;
   email: string;
   name: string;
-  role: string;
+  roles: any[];
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,19 +26,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const checkAuth = async () => {
     try {
-      const token = await AsyncStorage.getItem('access_token');
-      if (!token) {
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
-
       const { data } = await api.get('/auth/me');
       setUser(data);
     } catch (error) {
       setUser(null);
-      await AsyncStorage.removeItem('access_token');
-      await AsyncStorage.removeItem('user');
     } finally {
       setIsLoading(false);
     }
@@ -48,21 +40,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
-    try {
-      const { data } = await api.post('/auth/login', { email, password });
-      
-      if (data.token) {
-        await AsyncStorage.setItem('access_token', data.token);
-        await AsyncStorage.setItem('user', JSON.stringify(data.user || data));
-        setUser(data.user || data);
-        return { success: true };
-      }
-      
-      return { success: false, message: 'Invalid response from server' };
-    } catch (error: any) {
-      const message = error.response?.data?.message || error.message || 'Login failed';
-      return { success: false, message };
-    }
+    const { data } = await api.post('/auth/login', { email, password });
+    await checkAuth();
   };
 
   const logout = async () => {
@@ -71,8 +50,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      await AsyncStorage.removeItem('access_token');
-      await AsyncStorage.removeItem('user');
+      await AsyncStorage.clear();
       setUser(null);
     }
   };
@@ -85,6 +63,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isLoading,
         login,
         logout,
+        checkAuth,
       }}
     >
       {children}

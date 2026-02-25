@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { lightTheme, darkTheme } from '../theme/colors';
 
 interface ThemeContextType {
@@ -12,8 +13,27 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const [darkMode, setDarkMode] = useState(false);
 
-  const toggleTheme = () => {
-    setDarkMode(!darkMode);
+  useEffect(() => {
+    loadTheme();
+  }, []);
+
+  const loadTheme = async () => {
+    try {
+      const theme = await AsyncStorage.getItem('theme');
+      setDarkMode(theme === 'dark');
+    } catch (error) {
+      console.error('Error loading theme:', error);
+    }
+  };
+
+  const toggleTheme = async () => {
+    try {
+      const newTheme = !darkMode;
+      setDarkMode(newTheme);
+      await AsyncStorage.setItem('theme', newTheme ? 'dark' : 'light');
+    } catch (error) {
+      console.error('Error saving theme:', error);
+    }
   };
 
   const theme = darkMode ? darkTheme : lightTheme;
