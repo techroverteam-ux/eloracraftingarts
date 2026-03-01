@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { DrawerContentScrollView } from '@react-navigation/drawer';
-import { LayoutDashboard, Users, Shield, Map, Wrench, MessageSquare, BarChart3, LogOut } from 'lucide-react-native';
+import { LayoutDashboard, Users, Shield, Map, Wrench, MessageSquare, BarChart3, LogOut, Store, Package, UserCheck, TrendingUp, Bell } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -20,10 +20,16 @@ export default function CustomDrawer(props) {
     { name: 'Dashboard', icon: LayoutDashboard, route: 'Dashboard', alwaysShow: true },
     { name: 'User Management', icon: Users, route: 'Users', module: 'users' },
     { name: 'Role Management', icon: Shield, route: 'Roles', module: 'roles' },
+    { name: 'Store Operations', icon: Store, route: 'Stores', module: 'stores' },
     { name: 'Recce', icon: Map, route: 'Recce', module: 'recce' },
     { name: 'Installation', icon: Wrench, route: 'Installation', module: 'installation' },
     { name: 'Enquiries', icon: MessageSquare, route: 'Enquiries', module: 'enquiries' },
+    { name: 'Element Mapping', icon: Package, route: 'Elements', module: 'elements' },
+    { name: 'Client Management', icon: UserCheck, route: 'Clients', module: 'clients' },
+    { name: 'RFQ Generation', icon: BarChart3, route: 'RFQ', alwaysShow: true },
     { name: 'Reports', icon: BarChart3, route: 'Reports', alwaysShow: true },
+    { name: 'Analytics', icon: TrendingUp, route: 'Analytics', alwaysShow: true },
+    { name: 'Notifications', icon: Bell, route: 'Notifications', alwaysShow: true },
   ];
 
   const currentRoute = state.routes[state.index].name;

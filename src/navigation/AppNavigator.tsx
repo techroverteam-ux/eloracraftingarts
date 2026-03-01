@@ -14,6 +14,8 @@ import ElementsScreen from '../screens/elements/ElementsScreen';
 import ClientsScreen from '../screens/clients/ClientsScreen';
 import RFQScreen from '../screens/rfq/RFQScreen';
 import ReportsScreen from '../screens/reports/ReportsScreen';
+import AnalyticsScreen from '../screens/analytics/AnalyticsScreen';
+import NotificationsScreen from '../screens/notifications/NotificationsScreen';
 import CustomDrawer from '../components/CustomDrawer';
 
 const Drawer = createDrawerNavigator();
@@ -49,6 +51,8 @@ function DrawerNavigator() {
       {canView('clients') && <Drawer.Screen name="Clients" component={ClientsScreen} options={{ drawerLabel: 'Client Management' }} />}
       <Drawer.Screen name="RFQ" component={RFQScreen} options={{ drawerLabel: 'RFQ Generation' }} />
       <Drawer.Screen name="Reports" component={ReportsScreen} options={{ drawerLabel: 'Reports' }} />
+      <Drawer.Screen name="Analytics" component={AnalyticsScreen} options={{ drawerLabel: 'Analytics' }} />
+      <Drawer.Screen name="Notifications" component={NotificationsScreen} options={{ drawerLabel: 'Notifications' }} />
     </Drawer.Navigator>
   );
 }
