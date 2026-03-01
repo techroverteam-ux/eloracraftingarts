@@ -1,25 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
-import { Search, FileSpreadsheet, Eye, ChevronLeft, ChevronRight, CheckSquare, Square, Filter } from 'lucide-react-native';
+import { View, Text, FlatList, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+import { Search, FileSpreadsheet, Eye, ChevronLeft, ChevronRight, Filter, CheckSquare, Square } from 'lucide-react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { apiClient } from '../../services/api';
 import Toast from 'react-native-toast-message';
+import RNFS from 'react-native-fs';
 
 export default function RFQScreen() {
   const { theme } = useTheme();
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedStoreIds, setSelectedStoreIds] = useState(new Set());
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalStores, setTotalStores] = useState(0);
+  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('ALL');
+  const [filterZone, setFilterZone] = useState('');
+  const [filterState, setFilterState] = useState('');
+  const [filterDistrict, setFilterDistrict] = useState('');
+  const [filterVendorCode, setFilterVendorCode] = useState('');
+  const [filterDealerCode, setFilterDealerCode] = useState('');
+  const [filterPONumber, setFilterPONumber] = useState('');
+  const [filterInvoiceNo, setFilterInvoiceNo] = useState('');
+  const [filterClientCode, setFilterClientCode] = useState('');
+  const [filterCity, setFilterCity] = useState('');
 
   useEffect(() => {
     fetchStores();
-  }, [page, searchTerm]);
+  }, [page, searchTerm, filterStatus, filterZone, filterState, filterDistrict, filterVendorCode, filterDealerCode, filterPONumber, filterInvoiceNo, filterClientCode, filterCity]);
 
   const fetchStores = async () => {
     try {
@@ -27,10 +40,24 @@ export default function RFQScreen() {
       const params = new URLSearchParams();
       params.append('page', page.toString());
       params.append('limit', '10');
+      if (filterStatus !== 'ALL') params.append('status', filterStatus);
       if (searchTerm) params.append('search', searchTerm);
+      if (filterCity) params.append('city', filterCity);
 
       const { data } = await apiClient.get(`/stores?${params}`);
-      setStores(data.stores || []);
+      
+      let filteredStores = data.stores || [];
+      
+      if (filterZone) filteredStores = filteredStores.filter(s => s.location.zone?.toLowerCase().includes(filterZone.toLowerCase()));
+      if (filterState) filteredStores = filteredStores.filter(s => s.location.state?.toLowerCase().includes(filterState.toLowerCase()));
+      if (filterDistrict) filteredStores = filteredStores.filter(s => s.location.district?.toLowerCase().includes(filterDistrict.toLowerCase()));
+      if (filterVendorCode) filteredStores = filteredStores.filter(s => s.vendorCode?.toLowerCase().includes(filterVendorCode.toLowerCase()));
+      if (filterDealerCode) filteredStores = filteredStores.filter(s => s.dealerCode?.toLowerCase().includes(filterDealerCode.toLowerCase()));
+      if (filterPONumber) filteredStores = filteredStores.filter(s => s.commercials?.poNumber?.toLowerCase().includes(filterPONumber.toLowerCase()));
+      if (filterInvoiceNo) filteredStores = filteredStores.filter(s => s.commercials?.invoiceNumber?.toLowerCase().includes(filterInvoiceNo.toLowerCase()));
+      if (filterClientCode) filteredStores = filteredStores.filter(s => s.clientCode?.toLowerCase().includes(filterClientCode.toLowerCase()));
+
+      setStores(filteredStores);
       if (data.pagination) {
         setTotalPages(data.pagination.pages);
         setTotalStores(data.pagination.total);
@@ -40,27 +67,6 @@ export default function RFQScreen() {
     } finally {
       setLoading(false);
       setRefreshing(false);
-    }
-  };
-
-  const handleGenerateRFQ = async () => {
-    if (selectedStoreIds.size === 0) {
-      Toast.show({ type: 'error', text1: 'Please select at least one store' });
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      const response = await apiClient.post('/rfq/generate', { 
-        storeIds: Array.from(selectedStoreIds) 
-      }, { responseType: 'blob' });
-      
-      Toast.show({ type: 'success', text1: 'RFQ generated successfully!' });
-      setSelectedStoreIds(new Set());
-    } catch (error) {
-      Toast.show({ type: 'error', text1: 'Failed to generate RFQ' });
-    } finally {
-      setIsGenerating(false);
     }
   };
 
@@ -79,16 +85,44 @@ export default function RFQScreen() {
     }
   };
 
+  const handleGenerateRFQ = async () => {
+    if (selectedStoreIds.size === 0) {
+      Toast.show({ type: 'error', text1: 'Please select at least one store' });
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      const response = await apiClient.post('/rfq/generate', { 
+        storeIds: Array.from(selectedStoreIds) 
+      }, { responseType: 'blob' });
+      
+      const path = `${RNFS.DownloadDirectoryPath}/RFQ_${Date.now()}.xlsx`;
+      await RNFS.writeFile(path, response.data, 'base64');
+      
+      Toast.show({ 
+        type: 'success', 
+        text1: 'RFQ generated successfully!', 
+        text2: `Saved to: ${path}` 
+      });
+      setSelectedStoreIds(new Set());
+    } catch (error) {
+      Toast.show({ type: 'error', text1: 'Failed to generate RFQ' });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
-      case 'UPLOADED': return 'bg-gray-100 text-gray-800';
-      case 'RECCE_ASSIGNED': return 'bg-blue-100 text-blue-800';
-      case 'RECCE_SUBMITTED': return 'bg-yellow-100 text-yellow-800';
-      case 'RECCE_APPROVED': return 'bg-purple-100 text-purple-800';
-      case 'INSTALLATION_ASSIGNED': return 'bg-indigo-100 text-indigo-800';
-      case 'INSTALLATION_SUBMITTED': return 'bg-teal-100 text-teal-800';
-      case 'COMPLETED': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-600';
+      case 'UPLOADED': return '#6B7280';
+      case 'RECCE_ASSIGNED': return '#3B82F6';
+      case 'RECCE_SUBMITTED': return '#F59E0B';
+      case 'RECCE_APPROVED': return '#8B5CF6';
+      case 'INSTALLATION_ASSIGNED': return '#6366F1';
+      case 'INSTALLATION_SUBMITTED': return '#14B8A6';
+      case 'COMPLETED': return '#10B981';
+      default: return '#6B7280';
     }
   };
 
@@ -114,26 +148,48 @@ export default function RFQScreen() {
           <View style={{ flex: 1 }}>
             <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '600' }}>{item.storeName}</Text>
             <Text style={{ color: theme.colors.textSecondary, fontSize: 14 }}>{item.dealerCode}</Text>
-            <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>{item.location?.city || '-'}</Text>
+            <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>{item.location?.city}</Text>
           </View>
-          <View style={{ backgroundColor: getStatusColor(item.currentStatus).split(' ')[0], paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
-            <Text style={{ fontSize: 10, fontWeight: '600' }}>
+          <View style={{ backgroundColor: getStatusColor(item.currentStatus) + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 }}>
+            <Text style={{ color: getStatusColor(item.currentStatus), fontSize: 10, fontWeight: '600' }}>
               {item.currentStatus?.replace(/_/g, ' ') || 'UPLOADED'}
             </Text>
           </View>
         </View>
         
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View>
-            <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>Store ID: {item.storeId || '-'}</Text>
-            <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>Client: {item.clientCode || '-'}</Text>
+        <View style={{ marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+            <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>Store ID:</Text>
+            <Text style={{ color: theme.colors.text, fontSize: 12, fontWeight: '600' }}>{item.storeId || '-'}</Text>
           </View>
-          <TouchableOpacity 
-            style={{ backgroundColor: theme.colors.primary + '20', padding: 8, borderRadius: 8 }}
-          >
-            <Eye size={16} color={theme.colors.primary} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+            <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>Client Code:</Text>
+            <Text style={{ color: theme.colors.text, fontSize: 12, fontWeight: '600' }}>{item.clientCode || '-'}</Text>
+          </View>
+          {item.specs && (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+              <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>Dimensions:</Text>
+              <Text style={{ color: theme.colors.text, fontSize: 12, fontWeight: '600' }}>
+                {item.specs.width}x{item.specs.height} ft (Qty: {item.specs.qty})
+              </Text>
+            </View>
+          )}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={{ color: theme.colors.textSecondary, fontSize: 12 }}>Total Cost:</Text>
+            <Text style={{ color: '#10B981', fontSize: 12, fontWeight: 'bold' }}>
+              ₹{item.commercials?.totalCost?.toLocaleString() || '0'}
+            </Text>
+          </View>
         </View>
+
+        <TouchableOpacity 
+          style={{ backgroundColor: theme.colors.primary + '20', padding: 8, borderRadius: 8, alignItems: 'center' }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Eye size={14} color={theme.colors.primary} />
+            <Text style={{ color: theme.colors.primary, marginLeft: 4, fontSize: 12, fontWeight: '600' }}>View Details</Text>
+          </View>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -145,12 +201,12 @@ export default function RFQScreen() {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <View>
             <Text style={{ fontSize: 24, fontWeight: 'bold', color: theme.colors.text }}>RFQ Generation</Text>
-            <Text style={{ fontSize: 14, color: theme.colors.textSecondary }}>Create Request for Quotation for selected stores</Text>
+            <Text style={{ fontSize: 14, color: theme.colors.textSecondary }}>Create Request for Quotation</Text>
           </View>
           {selectedStoreIds.size > 0 && (
             <TouchableOpacity 
               onPress={handleGenerateRFQ} 
-              disabled={isGenerating}
+              disabled={generating} 
               style={{ 
                 backgroundColor: theme.colors.primary, 
                 paddingHorizontal: 16, 
@@ -158,16 +214,16 @@ export default function RFQScreen() {
                 borderRadius: 8, 
                 flexDirection: 'row', 
                 alignItems: 'center',
-                opacity: isGenerating ? 0.7 : 1
+                opacity: generating ? 0.5 : 1
               }}
             >
-              {isGenerating ? (
+              {generating ? (
                 <ActivityIndicator size="small" color="#FFF" />
               ) : (
                 <FileSpreadsheet size={16} color="#FFF" />
               )}
-              <Text style={{ color: '#FFF', marginLeft: 6, fontWeight: '600' }}>
-                Generate RFQ ({selectedStoreIds.size})
+              <Text style={{ color: '#FFF', marginLeft: 8, fontWeight: '600' }}>
+                {generating ? 'Generating...' : `Generate RFQ (${selectedStoreIds.size})`}
               </Text>
             </TouchableOpacity>
           )}
@@ -180,7 +236,7 @@ export default function RFQScreen() {
             <Text style={{ color: theme.colors.text, marginLeft: 8, fontWeight: '600' }}>Filters</Text>
           </View>
           
-          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.background, borderRadius: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.colors.border }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.background, borderRadius: 8, paddingHorizontal: 12, marginBottom: 12, borderWidth: 1, borderColor: theme.colors.border }}>
             <Search size={16} color={theme.colors.textSecondary} />
             <TextInput
               placeholder="Search stores..."
@@ -190,14 +246,36 @@ export default function RFQScreen() {
               style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 8, color: theme.colors.text }}
             />
           </View>
+          
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+            <TextInput
+              placeholder="Zone"
+              placeholderTextColor={theme.colors.textSecondary}
+              value={filterZone}
+              onChangeText={setFilterZone}
+              style={{ backgroundColor: theme.colors.background, padding: 8, borderRadius: 6, color: theme.colors.text, borderWidth: 1, borderColor: theme.colors.border, minWidth: 80, flex: 1 }}
+            />
+            <TextInput
+              placeholder="State"
+              placeholderTextColor={theme.colors.textSecondary}
+              value={filterState}
+              onChangeText={setFilterState}
+              style={{ backgroundColor: theme.colors.background, padding: 8, borderRadius: 6, color: theme.colors.text, borderWidth: 1, borderColor: theme.colors.border, minWidth: 80, flex: 1 }}
+            />
+            <TextInput
+              placeholder="City"
+              placeholderTextColor={theme.colors.textSecondary}
+              value={filterCity}
+              onChangeText={setFilterCity}
+              style={{ backgroundColor: theme.colors.background, padding: 8, borderRadius: 6, color: theme.colors.text, borderWidth: 1, borderColor: theme.colors.border, minWidth: 80, flex: 1 }}
+            />
+          </View>
         </View>
       </View>
 
       {/* Store List */}
       {loading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
+        <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 40 }} />
       ) : stores.length === 0 ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
           <Text style={{ color: theme.colors.textSecondary, fontSize: 16 }}>No stores found matching filters</Text>

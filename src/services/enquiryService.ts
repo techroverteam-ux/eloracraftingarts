@@ -10,4 +10,10 @@ export const enquiryService = {
     const { data } = await api.put(`/enquiries/${id}`, { remark, status });
     return data;
   },
+
+  // Missing API for contact form submission
+  create: async (enquiryData: any) => {
+    const { data } = await api.post('/enquiries', enquiryData);
+    return data;
+  },
 };

@@ -57,4 +57,17 @@ export const userService = {
     });
     return data;
   },
+
+  // Missing APIs for feature parity
+  getStats: async (id: string) => {
+    const { data } = await api.get(`/users/${id}/stats`);
+    return data;
+  },
+
+  bulkAssignStores: async (userId: string, formData: FormData) => {
+    const { data } = await api.post(`/users/${userId}/bulk-assign-stores`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
 };
